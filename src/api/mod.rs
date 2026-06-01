@@ -74,9 +74,7 @@ impl Bloomy {
     pub fn open(options: BloomyOptions) -> Result<Self> {
         fs::create_dir_all(&options.path)?;
 
-        Ok(Self {
-            engine: LsmEngine::default(),
-        })
+        Ok(Self { engine: LsmEngine })
     }
 
     pub fn put(&mut self, key: impl Into<Key>, value: impl Into<Value>) -> Result<()> {
@@ -119,10 +117,9 @@ mod tests {
         let path = unique_temp_path("storage-dir");
         let _ = fs::remove_dir_all(&path);
 
-        let bloomy = Bloomy::open(BloomyOptions::new(&path)).unwrap();
+        let _bloomy = Bloomy::open(BloomyOptions::new(&path)).unwrap();
 
         assert!(path.is_dir());
-        drop(bloomy);
 
         fs::remove_dir_all(path).unwrap();
     }
