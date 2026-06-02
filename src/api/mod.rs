@@ -3,11 +3,8 @@ use std::path::PathBuf;
 
 use crate::engine::lsm::LsmEngine;
 use crate::error::Result;
+pub use crate::types::{Key, KeyRange, KeyValue, Value};
 use crate::{config::BloomyConfig, config::DEFAULT_MEMTABLE_BYTES};
-
-pub type Key = Vec<u8>;
-
-pub type Value = Vec<u8>;
 
 #[derive(Debug, Clone)]
 pub struct BloomyOptions {
@@ -33,38 +30,6 @@ impl From<BloomyConfig> for BloomyOptions {
     }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
-pub struct KeyRange {
-    pub start: Option<Key>,
-    pub end: Option<Key>,
-}
-
-impl KeyRange {
-    pub fn all() -> Self {
-        Self::default()
-    }
-
-    pub fn from(start: impl Into<Key>) -> Self {
-        Self {
-            start: Some(start.into()),
-            end: None,
-        }
-    }
-
-    pub fn between(start: impl Into<Key>, end: impl Into<Key>) -> Self {
-        Self {
-            start: Some(start.into()),
-            end: Some(end.into()),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct KeyValue {
-    pub key: Key,
-    pub value: Value,
-}
-
 #[derive(Debug)]
 pub struct Bloomy {
     engine: LsmEngine,
@@ -74,7 +39,9 @@ impl Bloomy {
     pub fn open(options: BloomyOptions) -> Result<Self> {
         fs::create_dir_all(&options.path)?;
 
-        Ok(Self { engine: LsmEngine })
+        Ok(Self {
+            engine: LsmEngine::default(),
+        })
     }
 
     pub fn put(&mut self, key: impl Into<Key>, value: impl Into<Value>) -> Result<()> {
