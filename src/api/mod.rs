@@ -1,10 +1,14 @@
 use std::fs;
 use std::path::PathBuf;
 
+use crate::config::BloomyConfig;
+use crate::config::DEFAULT_MEMTABLE_BYTES;
 use crate::engine::lsm::LsmEngine;
 use crate::error::Result;
-pub use crate::types::{Key, KeyRange, KeyValue, Value};
-use crate::{config::BloomyConfig, config::DEFAULT_MEMTABLE_BYTES};
+pub use crate::types::Key;
+pub use crate::types::KeyRange;
+pub use crate::types::KeyValue;
+pub use crate::types::Value;
 
 #[derive(Debug, Clone)]
 pub struct BloomyOptions {

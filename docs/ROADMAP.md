@@ -12,9 +12,9 @@ project teaches us more.
 - [x] Add explicit defaults for all configurable settings.
 - [x] Validate configuration before opening storage files.
 - [x] Document a sample Bloomy configuration file.
-- [ ] Add simple `put`, `get`, and `delete` API.
-- [ ] Store data in an in-memory memtable only.
-- [ ] Add unit tests for API behavior.
+- [x] Add simple `put`, `get`, and `delete` API.
+- [x] Store data in an in-memory memtable only.
+- [x] Add unit tests for API behavior.
 - [ ] Define WAL record format.
 - [ ] Append mutations before applying them to the memtable.
 - [ ] Replay WAL during startup.

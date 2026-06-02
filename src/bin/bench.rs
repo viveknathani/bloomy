@@ -1,7 +1,9 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use std::time::Instant;
 
+use bloomy::KeyRange;
+use bloomy::KeyValueStore;
 use bloomy::engine::lsm::LsmEngine;
-use bloomy::{KeyRange, KeyValueStore};
 
 const DEFAULT_ITEMS: usize = 100_000;
 const SCAN_WIDTH: usize = 100;

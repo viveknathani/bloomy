@@ -18,13 +18,13 @@ Put unit tests near the code they exercise with `#[cfg(test)] mod tests`. Use `t
 
 ## Build, Test, and Development Commands
 
-- `cargo fmt`: format Rust code.
+- `cargo +nightly fmt`: format Rust code with the nightly rustfmt settings used by CI.
 - `cargo test`: run unit, integration, and doc tests.
 - `cargo build`: compile the project without running it.
 - `cargo run`: run the small Bloomy binary.
 - `cargo check`: quickly type-check during development.
 
-Run `cargo fmt` and `cargo test` before submitting changes.
+Run `cargo +nightly fmt` and `cargo test` before submitting changes.
 
 ## Coding Style & Naming Conventions
 

@@ -1,10 +1,13 @@
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::error::{Error, Result};
+use crate::error::Error;
+use crate::error::Result;
 
 pub const DEFAULT_MEMTABLE_BYTES: usize = 4 * 1024 * 1024;
 
