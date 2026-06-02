@@ -18,6 +18,8 @@ Bloomy will grow as a collection of interchangeable components and engines:
 - caching layers
 - I/O backends
 
+## configuration
+
 bloomy should be highly configurable through a JSON configuration file so storage
 engine choices, component settings, and benchmark setups can be changed without
 rewriting code.
@@ -27,22 +29,25 @@ Bloomy prefers `./bloomy.json` in the current working directory when present,
 then falls back to `~/.config/bloomy/bloomy.json`. See
 [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-The first target is a simple LSM-based key-value store supporting:
+## benchmarks
 
-- `put(key, value)`
-- `get(key)`
-- `delete(key)`
-- range scans
+Run the simple LSM engine benchmark with:
 
-The first LSM implementation should include:
+```bash
+cargo run --release --bin bench -- 10000
+```
 
-- write-ahead log (WAL)
-- in-memory memtable
-- SSTable generation
-- manifest metadata
-- basic compaction
-- crash recovery
-- configuration file loading and validation
+Example output:
+
+```text
+lsm engine benchmark
+items: 10000
+
+   writes:      10000 ops in    0.011s =       871707 ops/sec
+    reads:      10000 ops in    0.010s =      1042264 ops/sec
+    scans:        100 ops in    0.001s =        71713 ops/sec
+scan rows:      10000 ops in    0.001s =      7171317 ops/sec
+```
 
 ## license
 
