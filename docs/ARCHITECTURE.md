@@ -1,8 +1,21 @@
 # ARCHITECTURE
 
-bloomy is organized around swappable storage engine components. The first
+Bloomy is organized around swappable storage engine components. The first
 implementation will be an LSM key-value store, but the repository should leave
 room for alternative engines and internal implementations as the project grows.
+
+## workspace layout
+
+The repository is a Cargo workspace with two first-class packages:
+
+- `bloomy/`: the storage engine crate. Its library exposes the public key-value
+  API and reusable storage modules, including WAL parsing.
+- `bloomy-viewer/`: a terminal WAL viewer. It depends on `bloomy` by path and
+  must reuse the engine crate's WAL format code instead of reimplementing the
+  binary parser.
+
+Workspace-level documentation and configuration examples live in `docs/` and at
+the repository root.
 
 ## design principles
 
@@ -15,7 +28,7 @@ room for alternative engines and internal implementations as the project grows.
 
 ## initial module boundaries
 
-### `api`
+### `bloomy/src/api`
 
 The public key-value interface lives here. It should describe what a database
 can do without exposing how any specific engine stores data.
@@ -30,7 +43,7 @@ The initial public API uses owned byte vectors for stored keys and values.
 Point reads and deletes accept borrowed byte slices. Range scans use an
 inclusive start bound and exclusive end bound when those bounds are present.
 
-### `config`
+### `bloomy/src/config`
 
 JSON configuration loading and validation lives here. The configuration file is
 named `bloomy.json`. The binary accepts `--config path/to/bloomy.json` and
@@ -44,7 +57,7 @@ I/O backend choices.
 The code should keep parsed configuration separate from runtime state. Defaults
 should be explicit, validated, and easy to print for debugging.
 
-### `engine`
+### `bloomy/src/engine`
 
 Concrete engines live here. The first engine will be `engine::lsm`.
 
@@ -56,7 +69,7 @@ The expected responsibilities are:
 - recovery flow
 - compaction scheduling in a simple synchronous form
 
-### `storage`
+### `bloomy/src/storage`
 
 Reusable storage components live here.
 
@@ -69,7 +82,7 @@ The expected responsibilities are:
 - bloom filters
 - compaction helpers
 
-### `io`
+### `bloomy/src/io`
 
 I/O backends live here. The first backend should be normal synchronous file I/O.
 
@@ -110,6 +123,10 @@ MiB so a corrupted length cannot force unbounded allocation.
 The active LSM engine stores this file as `bloomy.wal` in the configured storage
 directory. Mutations are appended and synced before they are applied to the
 memtable.
+
+The terminal viewer opens any WAL path supplied by the user, renders decoded
+records, and polls the file in tail mode. A partial final record is shown as a
+live tail condition rather than as normal corruption.
 
 Recovery treats EOF between records as success. A short final record is the
 expected shape after a crash during append; engine startup ignores and truncates

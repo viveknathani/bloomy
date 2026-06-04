@@ -19,6 +19,8 @@ project teaches us more.
 - [x] Append mutations before applying them to the memtable.
 - [x] Replay WAL during startup.
 - [x] Add corruption and partial-record tests.
+- [x] Move repository to a Cargo workspace.
+- [x] Add terminal WAL viewer package.
 - [ ] Add sorted string table builder.
 - [ ] Add SSTable reader.
 - [ ] Flush memtables to SSTables.
