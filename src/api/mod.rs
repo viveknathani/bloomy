@@ -44,7 +44,7 @@ impl Bloomy {
         fs::create_dir_all(&options.path)?;
 
         Ok(Self {
-            engine: LsmEngine::default(),
+            engine: LsmEngine::open(&options.path)?,
         })
     }
 
@@ -92,6 +92,7 @@ mod tests {
 
         assert!(path.is_dir());
 
+        drop(_bloomy);
         fs::remove_dir_all(path).unwrap();
     }
 
@@ -103,6 +104,24 @@ mod tests {
         let bloomy = Bloomy::open(BloomyOptions::new(&path)).unwrap();
 
         bloomy.close().unwrap();
+        fs::remove_dir_all(path).unwrap();
+    }
+
+    #[test]
+    fn reopen_recovers_written_value() {
+        let path = unique_temp_path("recover");
+        let _ = fs::remove_dir_all(&path);
+
+        {
+            let mut bloomy = Bloomy::open(BloomyOptions::new(&path)).unwrap();
+            bloomy.put(b"alpha".to_vec(), b"1".to_vec()).unwrap();
+        }
+
+        let bloomy = Bloomy::open(BloomyOptions::new(&path)).unwrap();
+
+        assert_eq!(bloomy.get(b"alpha").unwrap(), Some(b"1".to_vec()));
+
+        drop(bloomy);
         fs::remove_dir_all(path).unwrap();
     }
 

@@ -8,8 +8,14 @@ const MAX_HEIGHT: usize = 16;
 #[derive(Debug, Clone)]
 struct SkipListNode {
     key: Key,
-    value: Value,
+    entry: MemTableEntry,
     forwards: Vec<Option<usize>>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum MemTableEntry {
+    Value(Value),
+    Tombstone,
 }
 
 #[derive(Debug)]
@@ -36,7 +42,7 @@ impl SkipList {
         Self {
             nodes: vec![SkipListNode {
                 key: Vec::new(),
-                value: Vec::new(),
+                entry: MemTableEntry::Tombstone,
                 forwards: vec![None; MAX_HEIGHT],
             }],
             head: 0,
@@ -46,13 +52,21 @@ impl SkipList {
     }
 
     pub fn insert(&mut self, key: Key, value: Value) {
+        self.insert_entry(key, MemTableEntry::Value(value));
+    }
+
+    pub fn insert_tombstone(&mut self, key: Key) {
+        self.insert_entry(key, MemTableEntry::Tombstone);
+    }
+
+    pub fn insert_entry(&mut self, key: Key, entry: MemTableEntry) {
         let mut update = [self.head; MAX_HEIGHT];
         let candidate = self.find_update_path(&key, &mut update);
 
         if let Some(index) = candidate
             && self.nodes[index].key == key
         {
-            self.nodes[index].value = value;
+            self.nodes[index].entry = entry;
             return;
         }
 
@@ -69,7 +83,7 @@ impl SkipList {
 
         self.nodes.push(SkipListNode {
             key,
-            value,
+            entry,
             forwards,
         });
 
@@ -80,38 +94,20 @@ impl SkipList {
         self.len += 1;
     }
 
-    pub fn delete(&mut self, key: &[u8]) -> Option<Value> {
-        let mut update = [self.head; MAX_HEIGHT];
-        let candidate = self.find_update_path(key, &mut update)?;
-
-        if self.nodes[candidate].key.as_slice() != key {
-            return None;
-        }
-
-        for (level, previous) in update.iter().copied().enumerate().take(self.height) {
-            if self.nodes[previous].forwards[level] != Some(candidate) {
-                continue;
-            }
-
-            self.nodes[previous].forwards[level] =
-                self.nodes[candidate].forwards.get(level).copied().flatten();
-        }
-
-        while self.height > 1 && self.nodes[self.head].forwards[self.height - 1].is_none() {
-            self.height -= 1;
-        }
-
-        self.len -= 1;
-        Some(self.nodes[candidate].value.clone())
-    }
-
-    pub fn search(&self, key: &[u8]) -> Option<&Value> {
+    pub fn search_entry(&self, key: &[u8]) -> Option<&MemTableEntry> {
         let candidate = self.lower_bound(key)?;
 
         if self.nodes[candidate].key.as_slice() == key {
-            Some(&self.nodes[candidate].value)
+            Some(&self.nodes[candidate].entry)
         } else {
             None
+        }
+    }
+
+    pub fn search(&self, key: &[u8]) -> Option<&Value> {
+        match self.search_entry(key) {
+            Some(MemTableEntry::Value(value)) => Some(value),
+            Some(MemTableEntry::Tombstone) | None => None,
         }
     }
 
@@ -133,10 +129,13 @@ impl SkipList {
                 break;
             }
 
-            results.push(KeyValue {
-                key: node.key.clone(),
-                value: node.value.clone(),
-            });
+            if let MemTableEntry::Value(value) = &node.entry {
+                results.push(KeyValue {
+                    key: node.key.clone(),
+                    value: value.clone(),
+                });
+            }
+
             index = node.forwards[0];
         }
 
@@ -217,8 +216,8 @@ impl MemTable {
         self.skiplist.search(key)
     }
 
-    pub fn delete(&mut self, key: &[u8]) -> Option<Value> {
-        self.skiplist.delete(key)
+    pub fn delete(&mut self, key: &[u8]) {
+        self.skiplist.insert_tombstone(key.to_vec());
     }
 
     pub fn scan(&self, range: KeyRange) -> Vec<KeyValue> {
@@ -262,17 +261,18 @@ mod tests {
     }
 
     #[test]
-    fn delete_unlinks_key() {
+    fn tombstone_hides_key_without_unlinking_it() {
         let mut list = SkipList::new();
 
         list.insert(b"alpha".to_vec(), b"1".to_vec());
         list.insert(b"bravo".to_vec(), b"2".to_vec());
         list.insert(b"charlie".to_vec(), b"3".to_vec());
 
-        assert_eq!(list.delete(b"bravo"), Some(b"2".to_vec()));
+        list.insert_tombstone(b"bravo".to_vec());
 
-        assert_eq!(list.len(), 2);
+        assert_eq!(list.len(), 3);
         assert_eq!(list.search(b"bravo"), None);
+        assert_eq!(list.search_entry(b"bravo"), Some(&MemTableEntry::Tombstone));
         assert_eq!(list.search(b"alpha"), Some(&b"1".to_vec()));
         assert_eq!(list.search(b"charlie"), Some(&b"3".to_vec()));
     }
@@ -294,6 +294,32 @@ mod tests {
                 KeyValue {
                     key: b"bravo".to_vec(),
                     value: b"2".to_vec(),
+                },
+                KeyValue {
+                    key: b"charlie".to_vec(),
+                    value: b"3".to_vec(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn scan_skips_tombstones() {
+        let mut table = MemTable::new();
+
+        table.put(b"alpha".to_vec(), b"1".to_vec());
+        table.put(b"bravo".to_vec(), b"2".to_vec());
+        table.put(b"charlie".to_vec(), b"3".to_vec());
+        table.delete(b"bravo");
+
+        let entries = table.scan(KeyRange::all());
+
+        assert_eq!(
+            entries,
+            vec![
+                KeyValue {
+                    key: b"alpha".to_vec(),
+                    value: b"1".to_vec(),
                 },
                 KeyValue {
                     key: b"charlie".to_vec(),

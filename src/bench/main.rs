@@ -31,7 +31,7 @@ fn main() {
 }
 
 fn bench_writes(items: usize) {
-    let mut engine = LsmEngine::new();
+    let (dir, mut engine) = new_engine("writes");
 
     let elapsed = time(|| {
         for index in 0..items {
@@ -39,11 +39,13 @@ fn bench_writes(items: usize) {
         }
     });
 
+    drop(engine);
+    std::fs::remove_dir_all(dir).unwrap();
     print_result("writes", items, elapsed);
 }
 
 fn bench_reads(items: usize) {
-    let engine = preload(items);
+    let (dir, engine) = preload(items);
 
     let elapsed = time(|| {
         for index in 0..items {
@@ -52,14 +54,18 @@ fn bench_reads(items: usize) {
         }
     });
 
+    drop(engine);
+    std::fs::remove_dir_all(dir).unwrap();
     print_result("reads", items, elapsed);
 }
 
 fn bench_scans(items: usize) {
-    let engine = preload(items);
+    let (dir, engine) = preload(items);
     let scan_count = items / SCAN_WIDTH;
 
     if scan_count == 0 {
+        drop(engine);
+        std::fs::remove_dir_all(dir).unwrap();
         println!("scans: skipped; need at least {SCAN_WIDTH} items");
         return;
     }
@@ -77,16 +83,26 @@ fn bench_scans(items: usize) {
 
     print_result("scans", scan_count, elapsed);
     print_result("scan rows", scan_count * SCAN_WIDTH, elapsed);
+    drop(engine);
+    std::fs::remove_dir_all(dir).unwrap();
 }
 
-fn preload(items: usize) -> LsmEngine {
-    let mut engine = LsmEngine::new();
+fn preload(items: usize) -> (std::path::PathBuf, LsmEngine) {
+    let (dir, mut engine) = new_engine("preload");
 
     for index in 0..items {
         engine.put(key(index), value(index)).unwrap();
     }
 
-    engine
+    (dir, engine)
+}
+
+fn new_engine(name: &str) -> (std::path::PathBuf, LsmEngine) {
+    let path = std::env::temp_dir().join(format!("bloomy-bench-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&path);
+    std::fs::create_dir_all(&path).unwrap();
+
+    (path.clone(), LsmEngine::open(path).unwrap())
 }
 
 fn key(index: usize) -> Vec<u8> {

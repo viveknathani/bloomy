@@ -15,10 +15,10 @@ project teaches us more.
 - [x] Add simple `put`, `get`, and `delete` API.
 - [x] Store data in an in-memory memtable only.
 - [x] Add unit tests for API behavior.
-- [ ] Define WAL record format.
-- [ ] Append mutations before applying them to the memtable.
-- [ ] Replay WAL during startup.
-- [ ] Add corruption and partial-record tests.
+- [x] Define WAL record format.
+- [x] Append mutations before applying them to the memtable.
+- [x] Replay WAL during startup.
+- [x] Add corruption and partial-record tests.
 - [ ] Add sorted string table builder.
 - [ ] Add SSTable reader.
 - [ ] Flush memtables to SSTables.

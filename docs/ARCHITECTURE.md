@@ -80,6 +80,43 @@ The expected responsibilities are:
 - sync/fsync behavior
 - eventually, alternate backends for experiments
 
+## WAL format v1
+
+The first WAL format is binary, append-only, and little-endian. A WAL file starts
+with a file header:
+
+```text
+[u8; 8] magic = "BLOOMWAL"
+u16     version = 1
+```
+
+Records follow immediately after the header. Each record is length-delimited and
+checksummed:
+
+```text
+u32 payload_len
+u8  kind        // 1 = put, 2 = delete tombstone
+u32 key_len
+u32 value_len
+[u8; key_len]   key
+[u8; value_len] value
+u32 crc32       // checksum over payload_len and payload bytes
+```
+
+Delete records are tombstones and must use `value_len = 0`. Put records may use
+an empty value. Keys must not be empty. Readers reject payloads larger than 64
+MiB so a corrupted length cannot force unbounded allocation.
+
+The active LSM engine stores this file as `bloomy.wal` in the configured storage
+directory. Mutations are appended and synced before they are applied to the
+memtable.
+
+Recovery treats EOF between records as success. A short final record is the
+expected shape after a crash during append; engine startup ignores and truncates
+that partial tail before accepting new writes. Checksum mismatches, invalid
+headers, unknown record kinds, malformed lengths, and invalid tombstones are
+corruption errors.
+
 ## initial LSM Shape
 
 The first LSM should use a simple architecture:
